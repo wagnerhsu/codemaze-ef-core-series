@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Quartz;
 using Serilog;
 using Topshelf;
 using WindowsServiceDemo;
@@ -8,7 +9,10 @@ var configuration = new ConfigurationBuilder()
     .SetBasePath(AppContext.BaseDirectory)
     .AddJsonFile(path: "serilog.json", optional: false, reloadOnChange: true)
     .Build();
-Directory.SetCurrentDirectory(AppContext.BaseDirectory);    
+// It is important to set the current directory to the base directory of the application
+// Otherwise, when application is installed as a Windows Service, the log file will be 
+// created in the System32 directory    
+Directory.SetCurrentDirectory(AppContext.BaseDirectory);
 Log.Logger = new LoggerConfiguration().ReadFrom.Configuration(configuration).CreateLogger();
 
 try
@@ -64,6 +68,22 @@ IHost CreateHostService(string[] args)
         options.UseSqlServer(builder.Configuration.GetConnectionString("Default"));
     });
 
+    builder.Services.AddQuartz(q =>
+    {
+        q.SchedulerName = "WindowsServiceDemo";
+        q.UseMicrosoftDependencyInjectionJobFactory();
+        var jobKey = new JobKey("job1", "group1");
+        q.AddJob<HelloJob>(j => j.WithIdentity(jobKey).Build());
+        q.AddTrigger(t => t
+            .WithIdentity("trigger1", "group1")
+            .ForJob(jobKey)
+            .StartNow()
+            .WithSimpleSchedule(x => x
+                .WithIntervalInSeconds(10)
+                .RepeatForever())
+        );
+    });
+    builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
     var host = builder.Build();
     return host;
 }
