@@ -11,7 +11,7 @@ public class Worker : BackgroundService
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
-    }
+     }
 
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -22,7 +22,7 @@ public class Worker : BackgroundService
         {
             if (_logger.IsEnabled(LogLevel.Information))
             {
-                _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
+                _logger.LogInformation("Worker running at: {time} {count}", DateTimeOffset.Now, appDbContext.Persons.Count());
             }
             await Task.Delay(1000, stoppingToken);
         }
