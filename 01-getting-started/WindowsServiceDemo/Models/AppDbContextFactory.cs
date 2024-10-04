@@ -5,15 +5,20 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace WindowsServiceDemo.Models
-{
-    public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
+namespace WindowsServiceDemo.Models;
+
+public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
 {
     public AppDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
         var _configuration = BuildConfiguration();
-        optionsBuilder.UseSqlServer(_configuration.GetConnectionString("Default"));
+        var connectionString = _configuration.GetConnectionString("Default");
+        if (string.IsNullOrEmpty(connectionString))
+        {
+            throw new InvalidOperationException("Connection string 'Default' is null or empty.");
+        }
+        _ = optionsBuilder.UseSqlServer(connectionString);
         return new AppDbContext(optionsBuilder.Options);
 
         IConfiguration BuildConfiguration()
@@ -25,5 +30,4 @@ namespace WindowsServiceDemo.Models
             return builder.Build();
         }
     }
-}
 }
